@@ -115,8 +115,8 @@ model_test= [0, 1];
 combs = [nt(:), rt(:), st(:), mt(:)];
 
 %results = grid_search_variogram(plot_res, combs);
-%writematrix([1, 2, 3, 4, 5; results], '../../data/cv_variogram_params.csv');
-results = readmatrix("../../data/cv_variogram_params.csv");
+%writematrix([1, 2, 3, 4, 5; results], '../../data/variogram_params.csv');
+results = readmatrix("../../data/variogram_params.csv");
 results = results(2:size(combs, 1), :);
 results = sortrows(results, 1, 'ascend');
 cv_nugget = results(1, 2);
@@ -133,7 +133,7 @@ manual_sill = 1800;
 manual_range = 20000;
 manual_nugget = 50;
 manual_model_type = 1;
-writematrix([1, 2, 3, 4; manual_nugget, manual_range, manual_sill, manual_model_type], '../../data/man_variogram_params.csv');
+
 figure('name', 'Variogram Models');
 plot(h, vgram, '.');
 ylabel('Variance');
@@ -246,6 +246,7 @@ plot(test_plot_res(:, 1), test_plot_res(:, 2), '.', 'Color', "#000000")
 title("Manual Variogram Kriging Variance");
 
 
+figure ('name','CV Kriging Variance');
 subplot(2, 1, 2);
 man_var_plot = imagesc(X2, Y2, zecv_out); hold on
 set(gca,'YDir','normal');

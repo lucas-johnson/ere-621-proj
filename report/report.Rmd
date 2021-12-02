@@ -130,9 +130,9 @@ carbon emissions to help achieve netzero emissions in NYS by 2050.
 Several previous studies have explored the efficacy of spatial interpolation 
 for mapping components of forest structure like mean biomass per unit area,
 canopy height, and basal area. 
-Two of such studies compared aspatial regression and machine learning methods to
-spatial interpolation methods in the form of ordinary kriging, co-kriging, 
-and regression kriging [@Hudak2002; @Freeman2006]. 
+Two of such studies compared aspatial regression and machine learning (ML) 
+methods to spatial interpolation methods in the form of ordinary kriging, 
+co-kriging, and regression kriging [@Hudak2002; @Freeman2006]. 
 @Hudak2002 showed that aspatial methods, models based on Landsat-derived
 predictors, better maintained the pattern of vegetation across the study area 
 while the spatial methods were less biased when producing maps of forest canopy 
@@ -233,7 +233,7 @@ a global forest canopy height layer [@Simard2011],
 topographic data [@terrainr], 
 climate data [@Daly2008], 
 and land cover classifications [@Brown2020; @Zhu2014].
-Three machine learning (ML) models were fit to a randomly selected 70% 
+Three (ML) models were fit to a randomly selected 70% 
 of the training dataset.
 Random forest models (ranger, @Wright2017), 
 stochastic gradient boosting machines (lightgbm, @Guolin2021), 
@@ -337,7 +337,6 @@ For the color scale I chose even intervals with $1 + 3.3 log(n)$ classes,
 centered on 0. 
 The range was trimmed as mentioned above. 
 
-
 The plotted continuous point kernel surface (Figure \@ref(fig:kernelplot))
 does not show any identifiable trends or directional components. 
 Rather, the spatial arrangement of residuals seems random, with underpredictions
@@ -377,15 +376,27 @@ Where h represents a lag distance between two locations $s_i$ and $s_j$,
 $n$ is the number of points that have a distance smaller than lag $h$, and 
 $y_i$, $y_j$ are the attribute values at locations $i$ and $j$ respectively. 
 
-First I plotted the variogram estimates using the training data and 500 
-equally spaced lag distances (Figure \@ref(fig:vgram)). 
+First I plotted the variogram estimates using the training data and 700 
+equally spaced lag distances (Figure \@ref(fig:vgram)).
 Additionally I plotted the variogram cloud (Figure \@ref(fig:vgramcloud)) where
 instead of the average pairwise relationship at each lag, 
 each individual pairwise relationship is plotted at each lag. 
-The variogram cloud helps make sense of the odd spread (very high and very low)
-of variogram estimates in Figure \@ref(fig:vgram) at large distances. 
-The variogram cloud indicates that there are simply very few values at such 
-long distances which create noisy variogram estimates. 
+I limited the variogram and variogram cloud plots to lags $\leq$ 50 km 
+which omitted a good portion of the statewide data which contains distances
+up to roughly ~600 km (Table \@ref(tab:distp)). 
+We don't expect forest conditions at one end of the state to have any 
+influence on forest condiations at the other end of the state. 
+Moreover, the forest conditions in NYS are quite patchy which is reflective 
+of the majority privately owned forest lands in the state (*Datasets section). 
+This is not uncommon in the northeastern United States, 
+but is much different than the West where large swaths of forest are maintained
+on public lands.
+The 50 km is likely still generous outside of the Adirondack or Catskill region
+in the state, but allows us to focus on the covariance at smaller lag distances.
+The variogram cloud helps make sense of the variogram estimates, particularly 
+in the presence of noise. 
+In this case it confirms the pattern in the variogram, reflecting smaller 
+variances at the smallest lag distances.
 
 ```{r vgram, echo = FALSE, out.width='100%', fig.cap="Estimated variogram plot from training data, with CV fit variogram and manual fit variogram overlaid.", fig.align="center"}
 knitr::include_graphics(here::here("figures/variogram.png"))
@@ -424,27 +435,26 @@ And an exponential model defined as:
 where $h$ is the the lag distance between points, $a$ is the nugget, 
 $r$ is the range, and $s$ is the sill. 
 
-First, I manually fit a variogram model to the variogram estimates. 
 The parameters chosen for the manually fit variogram model can be seen in 
 Table \@ref(tab:vgramtab), and the fit is exhibited by the blue curve in
 Figure \@ref(fig:vgram). 
 Additionally, I performed a standard grid search across the four variogram
 parameters (sill, range, nugget, model type) and assessed each using k-fold 
-cross-validation with 5 folds.
+cross-validation with 10 folds.
 The assessment was performed using ordinary kriging (described subsequently),
 and the performance was assessed by computing the root mean squared error
 (RMSE; calculation described subsequently) of the kriged predictions of 
 residuals compared against the actual residuals.
 For each unique combination of variogram parameters, the training data 
-was split into k folds. 
+was split into 10 folds. 
 For the kth iteration of the cross validation, the kth fold of the data was
 held out, and the k-1 other folds were used for training. 
 In other words the k-1 other folds were used to compute the covariance matrix
 used for making kriging predictions. 
 Predictions are made for the kth fold and those predictions are compared to 
 the actual values. 
-The RMSEs produced for each of the k iterations is averaged to produce a single
-RMSE value for each unique set of variogram parameters. 
+The RMSEs produced for each of the 10 iterations was averaged to produce a 
+single RMSE value for each unique set of variogram parameters. 
 I used the plotted variogram estimates (Figure \@ref(fig:vgram)) to determine
 suitable ranges for each of the variogram parameters which are described in
 Table \@ref(tab:vgramsearch).
@@ -452,16 +462,16 @@ These combinations were sorted by their associated RMSE values, and the
 combination with the lowest RMSE was selected. 
 This best combination of paramters is described in Table \@ref(tab:vgramtab),
 and the fit is shown by the red line in Figure \@ref(fig:vgram). 
+The CV RMSE produced by the various parameter combinations ranged from a low of
+of
+`r format(round(min(read.csv(here::here("data/cv_variogram_params.csv"))$X1), 2), big.mark = ",", scientific = FALSE)` 
+AGB Mg ha$^-1$ (selected iteration), to a high of
+`r format(round(max(read.csv(here::here("data/cv_variogram_params.csv"))$X1), 2), big.mark = ",", scientific = FALSE)` 
+AGB Mg ha$^-1$.
 
-Interestingly the best CV iteration produced a "nugget variogram", where the 
-nugget and sill are equal, indicating that the attributes do not covary in 
-space. 
-This fit does not account for the seemingly present rise near-range 
-relationships as visually apparent in the variogram estimates and as
-identified by the manually fit variogram. 
 
 ```{r vgramtab, echo = FALSE, fig.align='center' , warning = FALSE, message = FALSE}
-cv_iter <- read.csv(here::here("data/variogram_params.csv"))
+cv_iter <- read.csv(here::here("data/cv_variogram_params.csv"))
 colnames(cv_iter) <- c("RMSE", "nugget", "range", "sill", "model_type");
 cv_params <- cv_iter |> 
     arrange(RMSE) |> 
@@ -470,10 +480,9 @@ cv_params <- cv_iter |>
     mutate(Fit = "CV")
     
 
-manual_params <- read.csv(here::here("data/variogram.csv"))
-colnames(manual_params) <- c("sill", "range", "nugget")
+manual_params <- read.csv(here::here("data/man_variogram_params.csv"))
+colnames(manual_params) <- c("nugget", "range", "sill", "model_type")
 manual_params <- manual_params |>
-    mutate(model_type = 1) |>
     mutate(Fit = "Manual")
 
 bind_rows(cv_params, manual_params) |>
@@ -492,11 +501,12 @@ bind_rows(cv_params, manual_params) |>
 ```
 
 ```{r vgramsearch, echo = FALSE, fig.align='center' , warning = FALSE, message = FALSE}
-params <- read.csv(here::here("data/variogram_params.csv"))
+params <- read.csv(here::here("data/cv_variogram_params.csv"))
 colnames(params) <- c("RMSE", "Nugget", "Range", "Sill", "Model Type");
 n_combs <- nrow(params)
 params |>
     select(-RMSE) |>
+    mutate(Range = Range / 1000) |>
     tidyr::pivot_longer(everything(), names_to = "Parameter", values_to = "vals") |>
     group_by(Parameter) |>
     distinct() |>
@@ -512,7 +522,7 @@ params |>
         linesep = "\\addlinespace",
         format.args = list(big.mark = ",", scientific = FALSE),
         caption = sprintf(
-            "Variogram parameter search ranges (Min to Max by Step); %s unique combinations tested; model type 0 corresponds to the spherical model and model type 1 corresponds to the exponential model.",
+            "Variogram parameter search ranges (Min to Max by Step); %s unique combinations tested; model type 0 corresponds to the spherical model and model type 1 corresponds to the exponential model; Range in km.",
             format(n_combs, big.mark = ",", scientific = FALSE)
         )
     )
@@ -532,7 +542,7 @@ Where $Y(s_i)$ is the value for sampled (member of training data set) location
 $i$ and $w_i$ is a corresponding weight computed as follows: 
 
 \begin{equation}
-w(s) = C_+^{-1}c_+(s) (\#eq:wokrig)
+w_+(s) = C_+^{-1}c_+(s) (\#eq:wokrig)
 \end{equation} 
 
 \noindent
@@ -544,6 +554,9 @@ to 0.
 These modifications enforce that weights $w$ sum to 1. 
 $c_+$ is a vector containing covariance between the estimated location $s$ 
 and the sampled points, with a 1 appended to enforce weights $w$ sum to 1.
+The $+$ subscript for w, represents the presence of the "lagrange multiplier" in 
+the $w$ vector, which is not used practically but is used in computation to 
+force the sum of the weights to equal 1. 
 The variance of each kriging prediction is computed as follows:
 
 \begin{equation}
@@ -553,21 +566,26 @@ The variance of each kriging prediction is computed as follows:
 \noindent
 Where $\sigma^2$ is the sill parameter. 
 
-The kriging surface produced with the manually fit variogram is displayed in 
-Figure \@ref(fig:krigpred) and the associated variance surface is displayed in 
+The kriging surfaces produced with both variograms is displayed in 
+Figure \@ref(fig:krigpred) and the associated variance surfaces are displayed in 
 Figure \@ref(fig:krigvar). 
-The CV fit variogram was not used to produce prediction surfaces since the 
-CV fit variogram would only produces one prediction due to the nugget being
-equal to the sill (Table \@ref(tab:vgramtab). 
-The kriging predictions of model residuals (Figure \@ref(fig:krigpred)) are 
-relatively conservative compared to the training data residuals 
-(Figure \@ref(fig:trainhist)) with predictied residuals in the range of 
--80 Mg to 80 Mg ha$^-1$ and much of the surface showing near zero predictions.
-This is likely due to the relatively small difference between the sill and the 
-nugget.
+The kriging predictions from both variograms seem to correctly capture the range
+of residuals as present in the training data.
+Notably, the manually fit variogram predictions are less conservative, in that
+there are more predictions further from 0 (or the near-zero average residual),
+as evidenced by the less proportion of white space in the manual variogram 
+kriging prediction map.
+This is likely a function of the larger range parameter chosen for the manually
+fit variogram (Table \@ref(tab:vgramtab)).
 The variance surface (Figure \@ref(fig:krigvar)) shows how quickly the
 uncertainty of the kriged predictions grows as we move away from plot locations,
 as we can assume the dots or pockets of lower variance are plot locations. 
+Displaying a similar pattern to the prediction surface, the variance of the
+CV fit variogram rises much faster as distances from the inferred plot locations
+increases. 
+In both cases, we can say that the predictions are not very accurate with 
+any significant distance from plot locations, but this plays out more strongly
+with the CV fit variogram predictions.
 
 ```{r krigpred, echo = FALSE, out.width='100%', fig.cap="Kriging prediction surface for manual fit variogram with test plot locations overlaid. X and Y axis marks removed to preserve the confidentiality of the FIA plot locations.", fig.align="center"}
 knitr::include_graphics(here::here("figures/krig_pred.png"))
@@ -578,13 +596,14 @@ knitr::include_graphics(here::here("figures/krig_var.png"))
 ```
 
 Both the CV fit variogram and the manually fit variogram were used to make 
-predictions at the testing data locations. 
+predictions at the testing data locations (displayed by the black points in
+Figures \@ref(fig:krigvar), \@ref(fig:krigpred)). 
 The residuals predicted at these locations were subtracted from the original
 model predictions at these locations to create new "improved" estimates. 
-The new estiamtes, as well as the original estimates, were compared to the
+The new estimates, as well as the original estimates, were compared to the
 FIA AGB values.
 RMSE (Equation \@ref(eq:rmse)), mean bias error (MBE; Equation \@ref(eq:mbe)), 
-and the coefficient of determination (R$^2$, \@ref(eq:r2)) were
+and the coefficient of determination (R$^2$; Equation \@ref (eq:r2)) were
 computed for the three sets of predictions 
 (original, CV fit predictions, and manual predictions). 
 These three performance metrics were computed as follows:
@@ -605,21 +624,33 @@ Where $n$ is the number of FIA plots included in the data set, $\hat{y_i}$ is
 the predicted value, $y_{i}$ the measured value at the corresponding 
 location, and $\bar{y}$ the mean value from measurements or observations.
 
-The original model predictions were better than both the CV fit and manually 
-fit approaches across all three metrics, however differences in RMSE and R$^2$ 
-were marginal (Table \@ref(tab:perftab)).
-The CV fit appraoch produced marginally more accurate predictions than the 
-manual fit approach in terms of RMSE, but was slightly more negatively
-biased (MBE).
+Differences between all three sets of predictions were marginal, however
+the CV fit kriging predictions were the best in terms of RMSE, while 
+the original (unimproved by kriging) predictions were distinctly better than
+both kriging approaches in terms of MBE (Table \@ref(tab:perftab)).
+Interestingly, the CV fit approach had marginally worse MBE compared to the 
+manually fit predictions, despite producing a better RMSE. 
 Additionally, each of the three sets of predictions were plotted against the
 FIA reference values and a 1 to 1 line was overlaid 
 (Figure \@ref(fig:perfscatter)).
 In most cases, all three predictions are very similar which further reinforces
-the comparison of accuracy metrics. 
-One noticable pattern is that the manual fit predictions are some of largest
-predictions were made by the manually fit model, which corresponds to the
-marginally less negative bias in the manual fit model as compared to the 
-CV fit model. 
+the comparison of accuracy metrics in Table \@ref(tab:perftab). 
+The general pattern across all three sets of predictions is overprediction
+on the low end of the reference AGB distribution and underprediction on the 
+high end of reference AGB distribution.
+In other words the predictions are biased towards the mean. 
+This is undoubtedly a function of the model itself rather than the spatial 
+interpolation process given the similarity of the kriging predictions to the
+model predictions. 
+The increased size of the bias (more negative) in the kriging improved 
+predictions might be better understood by the kriging prediction surfaces which 
+are dominated by positive residuals (blue in Figure \@ref(fig:krigpred)). 
+Positive predicted residuals would result in decreased predictions after 
+subtracting the residuals.
+It is possible that the abundance of overpredictions on reference locations
+with 0 AGB (see the Y-Axis of Figure \@ref(fig:perfscatter)) in the original
+model predictions led to the overabundance of positive residuals in the 
+predicted surface and the predictions at the testing locations. 
 
 ```{r perftab, echo = FALSE, message = FALSE, warning = FALSE, fig.align = "center", results = 'asis'}
 test_perf <- read.csv(here("data/test_perf.csv")) |> 
@@ -651,19 +682,69 @@ knitr::asis_output(stringr::str_replace(tab, "Mg/ha", "Mg ha$^{-1}$"))
 knitr::include_graphics(here::here("figures/perf_scatter.png"))
 ```
 
-
+Overall, regression kriging with both variogram fitting approaches did little to
+improve the model predictions at the testing locations. 
+This is likely due to weak spatial relationship between residuals at 
+FIA plot locations as evidenced by the small range in variance in the 
+variogram estimate plot (Figure \@ref(fig:vgram)). 
+Perhaps more importantly, the range of the variograms, or rather the distances
+at which information could be gathered from other locations was quite short
+(Table \@ref(tab:vgramtab)), compared to the average distance between plots 
+(Table \@ref(tab:distp)). 
+As evidenced by the prediction surface (Figure \@ref(fig:krigpred)), very 
+conservative (near-zero) predictions are made with any signficant distance
+from the original training plots, and it is rare that the testing plot 
+locations fell close enough to a training plot for the prediction there to 
+be significantly improved. 
+\newline
 
 \noindent 
 *Conclusions*
 \newline
 
-Here's the big takeaway. \newline
+This report showed that regression kriging did little to improve landsat-based
+AGB model predictions at FIA plots inventoried in 2019 throughout NYS. 
+The spatial relationships of the model residuals are not generalizable beyond
+very short distances, and the spacing of FIA plots does not support the transfer
+of information from plot to plot. 
+Additionally, we might conclude that the model residuals are mostly randomly 
+distributed in space, 
+indicating that the models are properly calibrated.
+While this is good news for the models themselves, it certainly does not help
+the kriging process. 
+For this approach to be more effective we might require a more intensive 
+sampling protocol, or rather a random sample instead of a systematic one 
+to create a wider range of plot-to-plot distances that could be leveraged
+for spatial interpolation.
+I was able to demonstrate that a grid search with k-fold cross-validation 
+produced a better variogram fit than what a human practitioner 
+invested in the outcome could produce, as evidenced by the marginally improved 
+kriging predictions for the CV fit variogram.
+\newline
 
 \noindent 
 *Future Work*
 \newline
 
-I should also... \newline
+This approach might benefit from breaking down the study area into smaller
+units or homogeneous blocks to promote covariance between plots.
+Eco-regions might be suitable for this approach, however care would need to be
+taken to ensure that a sufficient number of observations were present in 
+each unit. 
+Additionally, this work could be extended by including all five annual sampling
+frames to include the full inventory of NYS plots. 
+Plots inventoried from 2019 were selected in this study for efficiency gains 
+and temporal consistency in the results, but the kriging process might benefit
+from a more dense set of observations. 
+Finally, this approach might be more successful if individual FIA subplots
+were treated as individual units, thus allowing for more fine-scale spatial 
+relationships in the data.
+From the outset of our modeling approach we treated the aggregate of the 4 
+subplots as a single unit, trading smaller sample size for more information at
+each unit and a reduction in plot-level AGB variance. 
+In this case a residual produced at the subplot was incongruous with our 
+model design.
+\newline
 
 \noindent 
 *References*
