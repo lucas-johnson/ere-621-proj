@@ -1,0 +1,19 @@
+project_name,year,region,id, readable_name
+FEMA_HudsonHoosic2012,2012,hudson_hoosic,18, Hudson Hoosic
+USGS_3County2014,2014,3_county,13, 3 County
+NYSGPO_AlleganySteuben2016,2016,allegany_steuben,8, Allegany & Steuben
+USGS_LongIsland2014,2014,long_island,14, Long Island
+FEMA_FultonSaratogaHerkimerFranklin2017,2018,fulton_saratoga_herkimer_franklin,2, "Fulton, Saratoga, Herkimer & Franklin"
+NYSGPO_SouthwestB_fall_2017,2018,southwest_b,3, Southwest B
+USGS_Schoharie2014,2014,scoharie,15, Scoharie
+USGS_ClintonEssexFranklin2014,2015,clinton_essex_franklin,10, "Clinton, Essex & Franklin"
+NYSGPO_Southwest_spring_2017,2017,southwest,5, Southwest
+NYSGPO_WarrenWashingtonEssex_2015,2015,warren_washington_essex,11, "Warren, Washington & Essex"
+USGS_NYC2014,2014,nyc,16, NYC
+NYSGPO_CayugaOswego_2018,2018,cayuga_oswego,4, Cayuga & Oswego
+NYSGPO_ColumbiaRensselaer2016,2016,columbia_rensselaer,9, Columbia & Rensselaer
+FEMA_FranklinStLawrence2016,2017,franklin_st_lawrence,6, Franklin & St. Lawrence
+FEMA_OneidaSubbasin2016,2017,oneida_subbasin,7, Oneida Subbasin
+FEMA_GreatLakes2014,2014,great_lakes,17, Great Lakes
+NYSGPO_MadisonOtsego_2015,2015,madison_otsego,12, Madison & Otsego
+NYSGPO_ErieGeneseeLivingston2019,2019,erie_genesee_livingston,1, "Erie, Genesee & Livingston"

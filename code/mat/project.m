@@ -10,19 +10,27 @@ clear all; close all; clc
 %%%% FORMAT DATA %%%%
 
 % Only work with 2019
-target_year = 2019; 
+cutoff_year = 2013; 
 
 % Training plots
-plots = readmatrix("/Volumes/big_bag/data/CUI/ERE_621/lucas_stuff/training.csv");
-plots = plots(plots(:, 2) == target_year, :);
-plot_res = plots(:, [5, 6, 3, 4, 2]);
+%plots = readmatrix("/Volumes/big_bag/data/CUI/ERE_621/training_subplots.csv");
+%plots = readmatrix("~/Code/lib/ere-621-proj/data/fia/training_plots.csv");
+plots = readmatrix("/Volumes/big_bag/data/CUI/ERE_621/lucas_stuff/lidar_residuals.csv");
+plot_res = plots;
+%plots = plots(plots(:, 2) > cutoff_year, :);
+%plot_res = plots(:, [6, 7, 4, 5, 3]);
+%plot_res = plots(:, [5, 6, 3, 4, 2]);
 plot_res(:, 3) = plot_res(:, 4) - plot_res(:, 3);
 
 % Test plots
-test_plots = readmatrix("/Volumes/big_bag/data/CUI/ERE_621/lucas_stuff/testing.csv");
-test_plots = test_plots(test_plots(:, 2) == target_year, :);
-test_plot_res = test_plots(:, [5, 6, 3, 4, 2]);
-test_plot_res(:, 3) = test_plot_res(:, 4) - test_plot_res(:, 3);
+%test_plots = readmatrix("/Volumes/big_bag/data/CUI/ERE_621/testing_subplots.csv");
+%test_plots = readmatrix("~/Code/lib/ere-621-proj/data/fia/testing_plots.csv");
+%test_plots = readmatrix("/Volumes/big_bag/data/CUI/ERE_621/lucas_stuff/lidar_testing.csv")
+%test_plot_res = test_plots;
+%test_plots = test_plots(test_plots(:, 2) > cutoff_year, :);
+%test_plot_res = test_plots(:, [6, 7, 4, 5, 3]);
+%test_plot_res = test_plots(:, [5, 6, 3, 4, 2]);
+%test_plot_res(:, 3) = test_plot_res(:, 4) - test_plot_res(:, 3);
 
 
 % Average distance between plots
@@ -34,11 +42,11 @@ max_dist = max(plot_res_dist(plot_res_dist > 0), [], 'all');
 intensity = size(plot_res, 1) / nys_area;
 writematrix([1, 2, 3; min_dist, max_dist, intensity], '../../data/train_dist.csv');
 
-test_dist = dist_mat(test_plot_res);
-min_dist = min(test_dist(test_dist > 0), [], 'all');
-max_dist = max(test_dist(test_dist > 0), [], 'all');
-intensity = size(test_plot_res, 1) / nys_area;
-writematrix([1, 2, 3; min_dist, max_dist, intensity], '../../data/test_dist.csv');
+%test_dist = dist_mat(test_plot_res);
+%min_dist = min(test_dist(test_dist > 0), [], 'all');
+%max_dist = max(test_dist(test_dist > 0), [], 'all');
+%intensity = size(test_plot_res, 1) / nys_area;
+%writematrix([1, 2, 3; min_dist, max_dist, intensity], '../../data/test_dist.csv');
 
 %%%% FIRST ORDER EFFECTS %%%%
 
@@ -80,7 +88,9 @@ rwb = [
 ];
 
 % Continuous Point Kernel and Map
-bw = 25000;
+regions_shape = shaperead("~/Code/lib/lucas-johnson/ere-621-proj/data/lidar_residuals/regions_shape_sans_ol.shp");
+%plot(regions_shape.X, regions_shape.Y);
+bw = 30000;
 [Xcent,Ycent,Kval] = johnson_continuous_point_kernel(plot_res, bw, 5000, 5000, 1);
 figure('Name',['Image: Plot Residuals - Kernel Bandwidth=' num2str(bw)])
 hold on
@@ -97,9 +107,9 @@ set(get(z,'label'),'string',"Residual (AGB Mg ha^{-1})");
 set(get(z,'label'),'rotation',270);
 set(get(z,'label'),'position',[4, 0, 0]);
 set(get(z,'label'),'FontSize',12);
-
+mapshow(regions_shape, "FaceAlpha", 0)
 %%%% FIT VARIOGRAM %%%%
-[h, vgram] = johnson_variogram(plot_res, 500, 0, 1); 
+[h, vgram] = johnson_variogram(plot_res, 100, 0, 0); 
 ylabel('Variance');
 xlabel('Distance (m)');
 
@@ -140,9 +150,9 @@ hold on;
 plot(h, test_cv, '-r');
 plot(h, test_manual, '-b');
 hold off;
-legend('Estimated Variogram','CV Fit - Spherical Model', 'Manual Fit - Exponential Model');
-legend('Location','northwest');
-
+%legend('Estimated Variogram','CV Fit - Spherical Model', 'Manual Fit - Exponential Model');
+%legend('Location','northwest');
+%{
 
 %%%% PLOT KRIGING SURFACES %%%%
 Mat = plot_res;
@@ -252,7 +262,7 @@ ylabel('Predicted AGB (Mg ha^{-1})');
 xlabel('Reference AGB (Mg ha^{-1})');
 legend('Original Predictions', 'CV Fit Predictions', 'Manual Fit Predictions', '1:1 Line');
 legend('Location','northwest');
-
+%}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % FUNCTIONS

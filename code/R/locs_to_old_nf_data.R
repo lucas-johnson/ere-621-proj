@@ -35,18 +35,52 @@ add_locs_to_plots <- function(plots, true_locations) {
 }
     
     
-training_plots <- read.csv(here("data/training.csv")) |>
+# training_plots <- read.csv(here("data/training.csv")) |>
+#     add_locs_to_plots(true_locations) |>
+#     select(PLOT, year, fia, ensemble, x, y) |>
+#     write.csv(
+#         "/Volumes/big_bag/data/CUI/ERE_621/lucas_stuff/training.csv",
+#         row.names = F
+#     )
+# 
+# testing_plots <- read.csv(here("data/testing.csv")) |>
+#     add_locs_to_plots(true_locations) |>
+#     select(PLOT, year, fia, ensemble, x, y) |>
+#     write.csv(
+#         "/Volumes/big_bag/data/CUI/ERE_621/lucas_stuff/testing.csv",
+#         row.names = F
+#     )
+
+
+
+lidar_projects <- read.csv('data/lidar_residuals/projects.csv')
+project_data <- bind_rows(lapply(lidar_projects$project_name, \(pn) {
+    proj_data <- read.csv(here("data/lidar_residuals", paste0(pn, ".csv")))
+    proj_data$id <- lidar_projects |> filter(project_name == pn) |> pull(id)
+    proj_data 
+}))
+read.csv(here('data/lidar_residuals/plot_pixel.csv')) |>
+    na.omit() |>
     add_locs_to_plots(true_locations) |>
-    select(PLOT, year, fia, ensemble, x, y) |>
+    select(x, y, FIA, MODEL, PLOT) |>
+    left_join(select(project_data, PLOT, id), by = "PLOT") |>
     write.csv(
-        "/Volumes/big_bag/data/CUI/ERE_621/lucas_stuff/training.csv",
+        "/Volumes/big_bag/data/CUI/ERE_621/lucas_stuff/lidar_residuals.csv",
         row.names = F
     )
 
-testing_plots <- read.csv(here("data/testing.csv")) |>
-    add_locs_to_plots(true_locations) |>
-    select(PLOT, year, fia, ensemble, x, y) |>
-    write.csv(
-        "/Volumes/big_bag/data/CUI/ERE_621/lucas_stuff/testing.csv", 
-        row.names = F
-    )
+
+
+# lidar_plots |>
+#     filter(PLOT %in% read.csv(here('data/lidar_residuals/testing.csv'))$PLOT) |>
+#     write.csv(
+#         "/Volumes/big_bag/data/CUI/ERE_621/lucas_stuff/lidar_testing.csv",
+#         row.names = F
+#     )
+# 
+# lidar_plots |>
+#     filter(!PLOT %in% read.csv(here('data/lidar_residuals/testing.csv'))$PLOT) |>
+#     write.csv(
+#         "/Volumes/big_bag/data/CUI/ERE_621/lucas_stuff/lidar_training.csv",
+#         row.names = F
+#     )    
