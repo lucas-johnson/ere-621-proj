@@ -114,8 +114,8 @@ model_test= [0, 1];
 [nt, rt, st, mt] = ndgrid(nugget_test, range_test, sill_test, model_test);
 combs = [nt(:), rt(:), st(:), mt(:)];
 
-%results = grid_search_variogram(plot_res, combs);
-%writematrix([1, 2, 3, 4, 5; results], '../../data/cv_variogram_params.csv');
+results = grid_search_variogram(plot_res, combs);
+writematrix([1, 2, 3, 4, 5; results], '../../data/cv_variogram_params.csv');
 results = readmatrix("../../data/cv_variogram_params.csv");
 results = results(2:size(combs, 1), :);
 results = sortrows(results, 1, 'ascend');
