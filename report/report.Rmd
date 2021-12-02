@@ -31,7 +31,7 @@ library(sf)
 
 
 \begin{center}
-REGRESSION KRIGING DOES NOT IMPROVE LANDSAT-BASED PREDICTIONS OF FOREST BIOMASS ACROSS NEW YORK STATE
+REGRESSION KRIGING HAS MARGINAL IMPACT ON LANDSAT-BASED PREDICTIONS OF FOREST BIOMASS ACROSS NEW YORK STATE
 
 Lucas Johnson
 
@@ -406,10 +406,10 @@ knitr::include_graphics(here::here("figures/variogram.png"))
 knitr::include_graphics(here::here("figures/variogram_cloud.png"))
 ```
 
-\noindent
+
 Using the estimated variogram plot as reference I manually fit a variogram model
-to the estimated variogram points.  
-The two variogram models that I tested were a spherical model defined as:
+to the estimated variogram points. The two variogram models that I tested were a
+spherical model defined as:
 
 \begin{equation}
 \hat{\gamma}(h) = \left\{
