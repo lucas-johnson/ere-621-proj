@@ -586,6 +586,9 @@ increases.
 In both cases, we can say that the predictions are not very accurate with 
 any significant distance from plot locations, but this plays out more strongly
 with the CV fit variogram predictions.
+Finally, the maximum variance produced by the CV fit variogram predictions are
+much larger than the manually fit variogram predictions due to the differences
+in the selected sill parameters.
 
 ```{r krigpred, echo = FALSE, out.width='100%', fig.cap="Kriging prediction surface for manual fit variogram with test plot locations overlaid. X and Y axis marks removed to preserve the confidentiality of the FIA plot locations.", fig.align="center"}
 knitr::include_graphics(here::here("figures/krig_pred.png"))

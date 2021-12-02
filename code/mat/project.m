@@ -142,7 +142,7 @@ hold on;
 plot(h, test_cv, '-r');
 plot(h, test_manual, '-b');
 hold off;
-legend('Estimated Variogram','CV Fit - Spherical Model', 'Manual Fit - Exponential Model');
+legend('Estimated Variogram','CV Fit', 'Manual Fit');
 legend('Location','northeast');
 xlim([0, 50000])
 
