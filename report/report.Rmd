@@ -1,0 +1,672 @@
+---
+header-includes:
+    - \usepackage{float}
+    - \usepackage{caption}
+    - \captionsetup[figure]{font=small}
+    - \captionsetup[table]{font=small}
+    - \usepackage{setspace}
+    - \singlespacing
+    
+bibliography: report.bib
+numbersections: true
+output: 
+    bookdown::pdf_book:
+        latex_engine: xelatex
+mainfont: "Times New Roman"
+geometry: margin=1in
+fontsize: 12pt
+
+keep_md: yes
+indent: true
+toc: false
+nocite: |
+  @Matlab
+---
+```{r, include = F}
+library(dplyr)
+library(here)
+library(kableExtra)
+library(sf)
+```
+
+
+\begin{center}
+REGRESSION KRIGING DOES NOT IMPROVE LANDSAT-BASED PREDICTIONS OF FOREST BIOMASS ACROSS NEW YORK STATE
+
+Lucas Johnson
+
+Ph.D. Student
+
+Graduate Program in Environmental Science,
+
+State University of New York College of Environmental Science and Forestry,
+
+ljohns11@esf.edu
+\end{center}
+
+\noindent
+*Abstract*
+\newline
+
+This is my abstract and I am testing for double spacing. Because double spacing 
+seems to be annoying.\newline
+
+\noindent 
+*Introduction*
+\newline
+
+Forest mapping and monitoring is becoming increasingly important as
+federal, state, and global agencies look towards natural solutions
+to mitigate a warming climate and the myriad resulting challenges. 
+Field sampling programs, 
+like the United States Department of Agriculture's Forest Inventory and Analysis
+program (FIA) [@Gray2012],
+provide unbiased estimates of forest structure over large areas, 
+but lack the fine spatial resolution to understand and manage forests at 
+relevant scales.
+Thus, high-resolution forest mapping is needed to inform decision-makers where 
+forest resources should be managed or preserved.
+New York State in particular has mandated that they reach net-zero emissions 
+across the entire economy by the year 2050, and they are actively researching
+carbon benefits that their forests, which dominate 60% of the statewide 
+landscape, can offer. 
+
+Since the United States Geological Survey (USGS) opened the Landsat data 
+archive in 2008, there has been an explosion of terrestrial monitoring 
+approaches built with these freely available global datasets 
+[@Wulder2012; @Banskota2014].
+Landsat offers the longest history of publicly available remote sensing data,
+from 1972 to present day, and has repeat observations for the same location
+roughly twice a month.
+These data are available everywhere, and Landsat missions are well supported
+meaning that any methods developed now can likely applied for future monitoring.
+Given the availability, moderate resolution (30m), temporal density, 
+and global spatial coverage of Landsat data, many researchers
+have explored their utility for mapping and monitoring forest conditions 
+over large scales and long time periods. 
+Landsat forestry applications include forest cover or species mapping, 
+disturbance mapping, and biophysical 
+(e.g. basal area, biomass, and canopy height) mapping [@Banskota2014].
+
+While the benefits of Landsat imagery in terms of coverage and availability 
+are well documented, 
+it is also well known that they cannot predict forest structure as accurately
+as active remote sensing data like LiDAR [@Huang2019; @Hurtt2019; @Chen2016].
+Landsat-based models inherently rely on measures of spectral reflectance
+or 'greenness' to predict forest structure. 
+This is challenging in that vegetation near the ground floor can and does
+appear quite green, and at a certain point more mature forests reach a greenness
+saturation point after which biomass, basal area, or height growth may still
+proceed without changes in spectral reflectance.
+This inherent limitation in Landsat's ability to model forest structure leads
+to less accurate spatial predictions of biomass and carbon which can have 
+large impacts on greenhouse gas budgets that rely on mapped predictions. 
+Landsat-based model predictions have been shown to be more accurate when 
+aggregated to larger scales [@Riemann2010], however accurate predictions
+at smaller scales will open the door to more targeted management 
+(e.g. private land parcel, individual forest stands) for improved forest 
+management. 
+
+Regression kriging, or kriging of model residuals, is an approach that has
+been previously documented to improve spatial predictions of forest 
+structure which rely on both optical and radar satellite imagery 
+[@Hudak2002; @Meng2009; @Tsui2013]. 
+In this report I assessed the benefit of regression kriging to improve 
+Landsat-based model predictions of forest aboveground biomass (AGB) across New
+York State (NYS).
+I examined first order effects effects of model residuals, fit variograms to the
+residuals, and spatially interpolated them using ordinary kriging. 
+I created enhanced predictions at a set of holdout FIA plots by adding the 
+kriged residual prediction to the original prediction.
+More accurate spatial predictions of AGB can help NYS target areas for increased
+forest management with the goal of improved carbon sequestration and avoided
+carbon emissions to help achieve netzero emissions in NYS by 2050. 
+\newline
+
+\noindent 
+*Literature Review*
+\newline
+
+Several previous studies have explored the efficacy of spatial interpolation 
+for mapping components of forest structure like mean biomass per unit area,
+canopy height, and basal area. 
+Two of such studies compared aspatial regression and machine learning methods to
+spatial interpolation methods in the form of ordinary kriging, co-kriging, 
+and regression kriging [@Hudak2002; @Freeman2006]. 
+@Hudak2002 showed that aspatial methods, models based on Landsat-derived
+predictors, better maintained the pattern of vegetation across the study area 
+while the spatial methods were less biased when producing maps of forest canopy 
+height in a 200 km$^2$ research forest in western Oregon.
+@Hudak2002 categorized regression kriging as an 'integrated' approach in that
+the primary models relying on Landsat information are aspatial, and then 
+the spatial relationships among the model residuals are used to improve the 
+predictions. 
+The integrated approach was better than the strictly spatial or aspatial 
+approaches in that predictions had low bias and while the maps captured the
+spatial pattern of the vegetation. 
+@Freeman2006 produced similar comparisons between spatial and aspatial methods, 
+but over a much larger study area covering the entire Rocky Mountain region
+(RMR).
+This region was broken up into 18 zones based on ecological similarity 
+[@homer2001] to reduce the effects of trend across the RMR. 
+Despite these efforts, they found that their aspatial model built with 
+MODIS-derived predictors, was much better than the aspatial methods, and
+regression kriging did little to improve the aspatial model predictions. 
+They attribute these outcomes to the fact that the aspatial model already 
+incorporated much of the spatial pattern in the landscape through the 
+MODIS and environmental predictor layers built into the model. 
+
+Additionally, two other studies compared various kriging approaches to 
+each other.
+@Tsui2013 used synthetic aperture radar (SAR) as auxiliary information to 
+estimate AGB across a 25 km$^2$ area in Vancouver Island, Canada, 
+while @Meng2009 used Landsat imagery as auxiliary information to estimate
+pine basal area across 20 counties in Georgia, United States. 
+@Tsui2013 showed that regression kriging was more accurate in terms of 
+root mean squared error (RMSE) and mean absolute error (MAE) than all other
+kriging approaches (ordinary kriging, co-kriging, regression co-kriging). 
+@Meng2009 showed that regression kriging was superior to ordinary kriging and 
+co-kriging in terms of R$^2$. 
+
+Three out of the four studies here showed that regression kriging produced the
+best results among spatial and aspatial approaches, however each of these 
+three studies operated on much smaller scales 
+(25 km$^2$, 250 km$^2$, ~35,000 km$^2$) than the ~141,000 km$^2$ in NYS. 
+The @Freeman2006 study, the one study listed here where regression kriging was 
+not the best approach, operated on a much larger area than NYS, but broke the
+region up into smaller units. 
+Additionally, this study noted that the scale of variation in the mountainous
+RMR was smaller than the distance between reference FIA plots leading to a 
+high nugget effect for the spatial approaches. \newline
+
+\noindent 
+*Study Area*
+\newline
+
+The study area for this report was all of NYS (Figure \@ref(fig:aoi)), 
+spanning
+`r prettyNum(units::drop_units(round(measurements::conv_unit(sf::st_read(here("data/nys_shape/Counties_Shoreline.shp")) |> sf::st_union() |> sf::st_area(), "m", "km"), 100000)), big.mark = ",", scientific = F)`
+km$^2$, and
+`r st_read(here("data/nys_shape/Counties_Shoreline.shp")) |> nrow()`
+counties.
+The topography across the state varies from 0m above sea level to roughly 
+1,650m above sea level in the Adirondack region in the northern portion
+of the state. 
+Roughly 60% of the state is forested, and this forested land is dominated by
+the maple, beech, birch forest type (53%), and is mostly privately owned (76%) 
+[@dec].
+
+```{r aoi, echo = FALSE, out.width='100%', fig.cap="New York State county shoreline map.", fig.align="center"}
+knitr::include_graphics(here::here("figures/nys_county_map.png"))
+```
+
+\noindent 
+*Datasets*
+\newline
+
+Estimates of AGB for all trees measuring $\geq$ 12.7 cm (5 in) diameter at 
+breast height were produced as part of the USDA FIA program [@Gray2012], 
+with true plot centroid locations obtained under agreement with the USDA. 
+Estimates were recorded in pounds, then summed at each plot and area-normalized 
+to units of megagrams per hectare (Mg ha^-1^). 
+The plots are sampled on a hexagonal grid, with random offsets within each 
+hexagon, such that one plot is sampled roughly every 2,400 ha (~6000 acres), 
+however only one fifth of the plots are sampled in each year [@Bechtold2005]. 
+For the purposes of this study, plots inventoried in 2019, the most recent
+inventory that is publicly available, were used to limit processing time, and to
+produce temporally coherent results. 
+This field data was partitioned into a roughly 70% training dataset
+(`r read.csv(here("data/training.csv")) |> filter(year == 2019) |> nrow()` 
+plots), 
+while the remaining 30% of the plots were set aside as a testing dataset
+(`r read.csv(here("data/testing.csv")) |> filter(year == 2019) |> nrow()` 
+plots).
+The min, max, and average distances between plots are recorded in Table \@ref(tab:distp). 
+
+The modelling approach used to produce model residuals for this study closely 
+followed the approach developed by @Hudak2020. 
+A set of 20 predictors were derived from Landsat analysis ready data 
+[@Dwyer2018], 
+Landtrendr derived disturbance and temporal segmentation information 
+[@Kennedy2018],
+a global forest canopy height layer [@Simard2011],
+topographic data [@terrainr], 
+climate data [@Daly2008], 
+and land cover classifications [@Brown2020; @Zhu2014].
+Three machine learning (ML) models were fit to a randomly selected 70% 
+of the training dataset.
+Random forest models (ranger, @Wright2017), 
+stochastic gradient boosting machines (lightgbm, @Guolin2021), 
+and support vector machines (kernlab,  @Alexandros2004)
+were developed. 
+With these 3 component models, we developed a "stacked" linear model ensemble 
+model (hereafter LINMOD) in effort to reduce the generalization error of our 
+component models [@Wolpert1992]. 
+LINMOD was developed by regressing the component model predictions for the
+30% of the training data not used to train the component models against the 
+observed values. 
+
+LINMOD was then used to make predictions for 30m pixels across the entire state.
+To produce plot-level residuals, pixel predictions were summarized at the 
+training plot locations as well as the testing plot locations by taking the 
+weighted average of pixels that intersected each plot. 
+Residuals were computed by subtracting reference AGB value from the model 
+prediction such that positive residuals represent overpredictions and negative
+residuals represent underpredictions. 
+\newline
+     
+```{r distp, message = F, warning = F, echo = F, results = 'asis', fig.align='center'}
+test_dist <- read.csv(here("data/test_dist.csv")) |> 
+    mutate(partition = "Test")
+colnames(test_dist) <- c("min", "max", "mean", "partition")
+train_dist <- read.csv(here("data/train_dist.csv")) |> 
+    mutate(partition = "Train")
+colnames(train_dist) <- c("min", "max", "mean", "partition")
+
+tab <- bind_rows(train_dist, test_dist) |>
+    mutate(across(c("min", "max"), ~ round(.x / 1000, 2))) |>
+    mutate(mean = round(mean * 1000, 2)) |>
+    select(partition, min, max, mean) |>
+    kbl(
+        col.names = c("Partition", "Min Distance", "Max Distance", "Intensity"),
+        booktabs = TRUE, 
+        align = c("l", rep("r", 3)), 
+        linesep = "\\addlinespace",
+        format.args = list(big.mark = ",", scientific = FALSE),
+        caption = "Plot distance summary in kilometers; Min and Max in km; Intensity in plots per thousand km2"
+    ) |>
+    row_spec(0, align = "c")
+
+knitr::asis_output(stringr::str_replace(tab, "km2", "km$^{2}$"))
+```
+
+\noindent 
+*Methods and Results*
+\newline
+
+First I examined the first order effects of the data to identify any global
+trends or directional patterns in the data. 
+Before attempting to visualize the data spatiall, I produced a histogram of
+the training data residuals (Figure \@ref(fig:trainhist)). 
+The histogram of the residuals indicated that the data was roughly normally
+distributed and centered on 0, which is perhaps unsurprising given that the
+the atttributes are model residuals which ideally have a mean of 0. 
+The data is slightly skewed left, with a few large negative residuals near
+200 Mg ha$^-1$. 
+For the sake of mapping firest order effects, I interpreted these residuals as 
+outliers, and the color scale range was restricted to 
+$[-max(residual), max(residual)]$
+such that these large negative outliers were included, but the color scale
+was not shifted drastically due to their inclusion. 
+
+```{r trainhist, echo = FALSE, fig.cap="Histogram for initial model residuals at training data locations. 25 bins used.", fig.align="center", out.width = "100%"}
+knitr::include_graphics(here::here("figures/train_hist.png"))
+```
+
+To visualize the first order effects spatially, I plotted a continuous point
+kernel function which estimates local means where attributes are weighted by 
+their distance from the estimation location. 
+The continuous point kernel estimates are computed as follows:
+
+\begin{equation}
+\hat{\mu_\tau}(s) = \sum_{i=1}^{n}w_i(s)y_i (\#eq:kernavg)
+\end{equation} 
+
+\noindent
+Where $\hat{\mu_\tau}(s)$ is the average estimate for location s, n is the 
+number of points within a distance $\tau$ of location s, $w_i$ is the weight
+for point $i$ and $y_i$ is the attribute value for point $i$. 
+$w_i$ is computed as follows:
+
+\begin{equation}
+w_i(s) =  \frac{k(\frac{(s - s_i)}{\tau})}{\sum_{j=1}^{n}k(\frac{(s - s_j)}{\tau})} (\#eq:wkern)
+\end{equation} 
+
+\noindent
+Where k is computed as follows:
+
+\begin{equation}
+k = \frac{3}{\pi \tau^2}(1 - \frac{h^2}{\tau^2})^2 (\#eq:kern)
+\end{equation}
+
+\noindent
+Where h is the distance between two locations. 
+I chose a bandwidth of 250km and uniformly spaced kernels 5km apart to produce
+a smooth surface with acceptable resolution. 
+For the color scale I chose even intervals with $1 + 3.3 log(n)$ classes, 
+centered on 0. 
+The range was trimmed as mentioned above. 
+
+
+The plotted continuous point kernel surface (Figure \@ref(fig:kernelplot))
+does not show any identifiable trends or directional components. 
+Rather, the spatial arrangement of residuals seems random, with underpredictions
+and overpredictions not following any strong spatial pattern.
+This can be interpreted in two different ways. 
+First, we might conclude that the environmental and spatial variables used as
+predictors in the model were able to capture any large scale trends in 
+biomass across the state. 
+Alternatively, if we assume that biomass is "randomly" distributed across the
+state, then since these residuals are partly a function of the measured biomass 
+on the ground, it would follow that the residuals themselves are randomly 
+distributed. 
+We do know that there are large concentrations of forest in the Adirondack and 
+Catskill regions, however most of the state is dominated by patchy forest 
+cover. 
+
+
+```{r kernelplot, echo = FALSE, out.width='100%', fig.cap="Continuous point kernel estimates for training data; Bandwidth = 25 km; Kernels uniformly spaced 5 km apart.", fig.align="center"}
+knitr::include_graphics(here::here("figures/train_kernel.png"))
+```
+
+Next, I explored variograms to identify the second order effects of the data
+with the goal of leveraging the spatial dependence of the residual values
+to do spatial interpolation. 
+Specifically, variograms help identify the way the attribute deviations
+covary across the state. 
+The results of the continuous point kernel analysis led to the use of a single
+omnidirectional variogram for the entire region. 
+The variogram estimates for a given lag are computed as follows: 
+
+\begin{equation}
+\hat{\gamma}(h) = \frac{1}{2n(h)}\sum_{h = s_i - s_j}(y_i - y_j)^2 (\#eq:var)
+\end{equation} 
+
+\noindent
+Where h represents a lag distance between two locations $s_i$ and $s_j$, 
+$n$ is the number of points that have a distance smaller than lag $h$, and 
+$y_i$, $y_j$ are the attribute values at locations $i$ and $j$ respectively. 
+
+First I plotted the variogram estimates using the training data and 500 
+equally spaced lag distances (Figure \@ref(fig:vgram)). 
+Additionally I plotted the variogram cloud (Figure \@ref(fig:vgramcloud)) where
+instead of the average pairwise relationship at each lag, 
+each individual pairwise relationship is plotted at each lag. 
+The variogram cloud helps make sense of the odd spread (very high and very low)
+of variogram estimates in Figure \@ref(fig:vgram) at large distances. 
+The variogram cloud indicates that there are simply very few values at such 
+long distances which create noisy variogram estimates. 
+
+```{r vgram, echo = FALSE, out.width='100%', fig.cap="Estimated variogram plot from training data, with CV fit variogram and manual fit variogram overlaid.", fig.align="center"}
+knitr::include_graphics(here::here("figures/variogram.png"))
+```
+
+```{r vgramcloud, echo = FALSE, out.width='100%', fig.cap="Variogram cloud from training data.", fig.align="center"}
+knitr::include_graphics(here::here("figures/variogram_cloud.png"))
+```
+
+\noindent
+Using the estimated variogram plot as reference I manually fit a variogram model
+to the estimated variogram points.  
+The two variogram models that I tested were a spherical model defined as:
+
+\begin{equation}
+\hat{\gamma}(h) = \left\{
+     \begin{array}{lr}
+       s^2(\frac{2h}{2r}-\frac{h^3}{2r^3} : h \leq r) \\
+       s^2 :                                otherwise
+     \end{array}
+   \right.\\ (\#eq:sphere)
+\end{equation} 
+
+\noindent
+And an exponential model defined as: 
+\begin{equation}
+\hat{\gamma}(h) = \left\{
+        \begin{array}{lr}
+        a + ((s - a) (1 - e^{-3h/r})) : h > 0 \\
+        0 : h == 0
+    \end{array}
+   \right.\\ (\#eq:exp)
+\end{equation} 
+
+\noindent
+where $h$ is the the lag distance between points, $a$ is the nugget, 
+$r$ is the range, and $s$ is the sill. 
+
+First, I manually fit a variogram model to the variogram estimates. 
+The parameters chosen for the manually fit variogram model can be seen in 
+Table \@ref(tab:vgramtab), and the fit is exhibited by the blue curve in
+Figure \@ref(fig:vgram). 
+Additionally, I performed a standard grid search across the four variogram
+parameters (sill, range, nugget, model type) and assessed each using k-fold 
+cross-validation with 5 folds.
+The assessment was performed using ordinary kriging (described subsequently),
+and the performance was assessed by computing the root mean squared error
+(RMSE; calculation described subsequently) of the kriged predictions of 
+residuals compared against the actual residuals.
+For each unique combination of variogram parameters, the training data 
+was split into k folds. 
+For the kth iteration of the cross validation, the kth fold of the data was
+held out, and the k-1 other folds were used for training. 
+In other words the k-1 other folds were used to compute the covariance matrix
+used for making kriging predictions. 
+Predictions are made for the kth fold and those predictions are compared to 
+the actual values. 
+The RMSEs produced for each of the k iterations is averaged to produce a single
+RMSE value for each unique set of variogram parameters. 
+I used the plotted variogram estimates (Figure \@ref(fig:vgram)) to determine
+suitable ranges for each of the variogram parameters which are described in
+Table \@ref(tab:vgramsearch).
+These combinations were sorted by their associated RMSE values, and the 
+combination with the lowest RMSE was selected. 
+This best combination of paramters is described in Table \@ref(tab:vgramtab),
+and the fit is shown by the red line in Figure \@ref(fig:vgram). 
+
+Interestingly the best CV iteration produced a "nugget variogram", where the 
+nugget and sill are equal, indicating that the attributes do not covary in 
+space. 
+This fit does not account for the seemingly present rise near-range 
+relationships as visually apparent in the variogram estimates and as
+identified by the manually fit variogram. 
+
+```{r vgramtab, echo = FALSE, fig.align='center' , warning = FALSE, message = FALSE}
+cv_iter <- read.csv(here::here("data/variogram_params.csv"))
+colnames(cv_iter) <- c("RMSE", "nugget", "range", "sill", "model_type");
+cv_params <- cv_iter |> 
+    arrange(RMSE) |> 
+    head(1) |>
+    select(-RMSE) |>
+    mutate(Fit = "CV")
+    
+
+manual_params <- read.csv(here::here("data/variogram.csv"))
+colnames(manual_params) <- c("sill", "range", "nugget")
+manual_params <- manual_params |>
+    mutate(model_type = 1) |>
+    mutate(Fit = "Manual")
+
+bind_rows(cv_params, manual_params) |>
+    mutate(model_type = ifelse(model_type == 0, "Spherical", "Exponential")) |>
+    select("Fit", "model_type", "sill", "range", "nugget") |>
+    mutate(range = range/1000) |>
+    kbl(
+        col.names = c("Fit", "Model Type", "Sill", "Range", "Nugget"),
+        booktabs = TRUE, 
+        align = c(rep("l", 2), rep("r", 3)), 
+        linesep = "\\addlinespace",
+        format.args = list(big.mark = ",", scientific = FALSE),
+        caption = "Variogram parameters selected through CV fitting and manual fitting; Range in km."
+    ) |>
+    row_spec(0, align = "c")
+```
+
+```{r vgramsearch, echo = FALSE, fig.align='center' , warning = FALSE, message = FALSE}
+params <- read.csv(here::here("data/variogram_params.csv"))
+colnames(params) <- c("RMSE", "Nugget", "Range", "Sill", "Model Type");
+n_combs <- nrow(params)
+params |>
+    select(-RMSE) |>
+    tidyr::pivot_longer(everything(), names_to = "Parameter", values_to = "vals") |>
+    group_by(Parameter) |>
+    distinct() |>
+    mutate(diff = vals - lag(vals)) |>
+    summarize(
+        Min = min(vals),
+        Max = max(vals),
+        Step = mean(diff, na.rm = T)
+    ) |>
+    kbl(
+        booktabs = TRUE, 
+        align = c("l", rep("r", 3)), 
+        linesep = "\\addlinespace",
+        format.args = list(big.mark = ",", scientific = FALSE),
+        caption = sprintf(
+            "Variogram parameter search ranges (Min to Max by Step); %s unique combinations tested; model type 0 corresponds to the spherical model and model type 1 corresponds to the exponential model.",
+            format(n_combs, big.mark = ",", scientific = FALSE)
+        )
+    )
+
+```
+
+I used ordinary kriging to produce prediction surfaces across the state, and to
+produce point predictions at the testing data locations.
+Kriging estimates for a location $s0$ were computed as follows:
+
+\begin{equation}
+\hat{Y}(s_0) = \sum_{i=1}^{n}w_iY(s_i) (\#eq:okrig)
+\end{equation} 
+
+\noindent
+Where $Y(s_i)$ is the value for sampled (member of training data set) location 
+$i$ and $w_i$ is a corresponding weight computed as follows: 
+
+\begin{equation}
+w(s) = C_+^{-1}c_+(s) (\#eq:wokrig)
+\end{equation} 
+
+\noindent
+Where $C_+^{-1}$ is the inverse covariance matrix computed with the provided 
+variogram model and the sampled locations with an additional column and row of 
+all ones appended. 
+The last value in the diagonal (first is top left, last is bottom right) is set
+to 0. 
+These modifications enforce that weights $w$ sum to 1. 
+$c_+$ is a vector containing covariance between the estimated location $s$ 
+and the sampled points, with a 1 appended to enforce weights $w$ sum to 1.
+The variance of each kriging prediction is computed as follows:
+
+\begin{equation}
+\sigma_e^2 = \sigma^2 - c_+^T(s)C_+^{-1}c_+(s) (\#eq:varokrig)
+\end{equation} 
+
+\noindent
+Where $\sigma^2$ is the sill parameter. 
+
+The kriging surface produced with the manually fit variogram is displayed in 
+Figure \@ref(fig:krigpred) and the associated variance surface is displayed in 
+Figure \@ref(fig:krigvar). 
+The CV fit variogram was not used to produce prediction surfaces since the 
+CV fit variogram would only produces one prediction due to the nugget being
+equal to the sill (Table \@ref(tab:vgramtab). 
+The kriging predictions of model residuals (Figure \@ref(fig:krigpred)) are 
+relatively conservative compared to the training data residuals 
+(Figure \@ref(fig:trainhist)) with predictied residuals in the range of 
+-80 Mg to 80 Mg ha$^-1$ and much of the surface showing near zero predictions.
+This is likely due to the relatively small difference between the sill and the 
+nugget.
+The variance surface (Figure \@ref(fig:krigvar)) shows how quickly the
+uncertainty of the kriged predictions grows as we move away from plot locations,
+as we can assume the dots or pockets of lower variance are plot locations. 
+
+```{r krigpred, echo = FALSE, out.width='100%', fig.cap="Kriging prediction surface for manual fit variogram with test plot locations overlaid. X and Y axis marks removed to preserve the confidentiality of the FIA plot locations.", fig.align="center"}
+knitr::include_graphics(here::here("figures/krig_pred.png"))
+```
+
+```{r krigvar, echo = FALSE, out.width='100%', fig.cap="Kriging variance surface for manual fit variogram with test plot locations overlaid. X and Y axis marks removed to preserve the confidentiality of the FIA plot locations.", fig.align="center"}
+knitr::include_graphics(here::here("figures/krig_var.png"))
+```
+
+Both the CV fit variogram and the manually fit variogram were used to make 
+predictions at the testing data locations. 
+The residuals predicted at these locations were subtracted from the original
+model predictions at these locations to create new "improved" estimates. 
+The new estiamtes, as well as the original estimates, were compared to the
+FIA AGB values.
+RMSE (Equation \@ref(eq:rmse)), mean bias error (MBE; Equation \@ref(eq:mbe)), 
+and the coefficient of determination (R$^2$, \@ref(eq:r2)) were
+computed for the three sets of predictions 
+(original, CV fit predictions, and manual predictions). 
+These three performance metrics were computed as follows:
+
+\begin{equation}
+\operatorname{RMSE} = \sqrt{(\frac{1}{n})\sum_{i=1}^{n}(y_{i} - \hat{y_{i}})^{2}} (\#eq:rmse)
+\end{equation}
+
+\begin{equation}
+\operatorname{MBE} = (\frac{1}{n})\sum_{i=1}^{n}(y_{i} - \hat{y_{i}}) (\#eq:mbe)
+\end{equation}
+
+\begin{equation}
+\operatorname{R^2} = 1 - \frac{\sum_{i=1}^{n}\left(y_{i}-\hat{y}_{i}\right)^2}{\sum_{i=1}^{n}\left(y_i - \bar{y}\right)^2} (\#eq:r2)
+\end{equation}
+
+Where $n$ is the number of FIA plots included in the data set, $\hat{y_i}$ is 
+the predicted value, $y_{i}$ the measured value at the corresponding 
+location, and $\bar{y}$ the mean value from measurements or observations.
+
+The original model predictions were better than both the CV fit and manually 
+fit approaches across all three metrics, however differences in RMSE and R$^2$ 
+were marginal (Table \@ref(tab:perftab)).
+The CV fit appraoch produced marginally more accurate predictions than the 
+manual fit approach in terms of RMSE, but was slightly more negatively
+biased (MBE).
+Additionally, each of the three sets of predictions were plotted against the
+FIA reference values and a 1 to 1 line was overlaid 
+(Figure \@ref(fig:perfscatter)).
+In most cases, all three predictions are very similar which further reinforces
+the comparison of accuracy metrics. 
+One noticable pattern is that the manual fit predictions are some of largest
+predictions were made by the manually fit model, which corresponds to the
+marginally less negative bias in the manual fit model as compared to the 
+CV fit model. 
+
+```{r perftab, echo = FALSE, message = FALSE, warning = FALSE, fig.align = "center", results = 'asis'}
+test_perf <- read.csv(here("data/test_perf.csv")) |> 
+    mutate(Predictions = "Original")
+colnames(test_perf) <- c("RMSE", "MBE", "R2", "Predictions")
+cv_perf <- read.csv(here("data/cv_perf.csv")) |> 
+    mutate(Predictions = "CV Fit")
+colnames(cv_perf) <- c("RMSE", "MBE", "R2", "Predictions")
+
+man_perf <- read.csv(here("data/man_perf.csv")) |> 
+    mutate(Predictions = "Manual Fit")
+colnames(man_perf) <- c("RMSE", "MBE", "R2", "Predictions")
+
+tab <- bind_rows(test_perf, cv_perf, man_perf) |>
+    mutate(across(where(is.numeric), ~ round(.x, 2))) |>
+    select(Predictions, RMSE, MBE, R2) |>
+    kbl(
+        booktabs = TRUE, 
+        align = c("l", rep("r", 3)), 
+        linesep = "\\addlinespace",
+        caption = "Performance metrics for model accuracy at testing locations before and after prediction improvement via residual kriging; RMSE, MBE in AGB Mg/ha."
+    ) |>
+    row_spec(0, align = "c")
+tab <- knitr::asis_output(stringr::str_replace(tab, "R2", "R$^{2}$"))
+knitr::asis_output(stringr::str_replace(tab, "Mg/ha", "Mg ha$^{-1}$"))
+```
+
+```{r perfscatter, echo = FALSE, out.width='100%', fig.cap="Predicted vs reference scatter plot of original model predictions at test data locations.", fig.align="center"}
+knitr::include_graphics(here::here("figures/perf_scatter.png"))
+```
+
+
+
+\noindent 
+*Conclusions*
+\newline
+
+Here's the big takeaway. \newline
+
+\noindent 
+*Future Work*
+\newline
+
+I should also... \newline
+
+\noindent 
+*References*
+\newline
+
+<div id="refs"></div>
