@@ -48,8 +48,25 @@ ljohns11@esf.edu
 *Abstract*
 \newline
 
-This is my abstract and I am testing for double spacing. Because double spacing 
-seems to be annoying.\newline
+There is a growing need for spatially explicit, high-resolution, biomass 
+predictions as federal, state, and international agencies look to forest
+to offset economy-wide emissions. 
+Optical satellite imagery, like Landsat, offers historically consistent data 
+with wide spatial coverage, and has been relied upon as the primary information
+source in many biomass mapping and modeling efforts.
+However, Landsat based models are not without significant errors. 
+In this report, I attempted to leverage the spatial relationships between 
+Landsat-based model residuals at federally maintained Forest Inventory and 
+Analysis plot locations to improve model predictions in New York State.
+I used variogram models and ordinary kriging to produce predictions of 
+residuals which were then added back to initial model predictions.
+These improved predictions were assessed against ground truth data and compared
+to original model predictions at a set of holdout plots.
+Additionally, I demonstrated how cross-validation paired with a grid-search
+can be an effective method to produce variogram parameters.
+Neither manually fit variograms, and cross-validation fit variograms were able
+to meaningfully improve model predictions at FIA plot locations. 
+\newline
 
 \noindent 
 *Introduction*
