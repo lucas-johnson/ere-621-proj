@@ -3,6 +3,11 @@
     ERE 621 - Fall 2021
     Final Project
     Lucas Johnson
+
+    NOTE - 
+    CODE WILL NOT RUN ON BRAY COMPUTERS. CODE TO BE RUN IN PERSON DUE TO
+    DATA CONFIDENTIALITY. 
+
 %}
 
 clear all; close all; clc
@@ -145,6 +150,24 @@ hold off;
 legend('Estimated Variogram','CV Fit', 'Manual Fit');
 legend('Location','northeast');
 xlim([0, 50000])
+
+[h, vgram] = johnson_variogram(plot_res, 700, 0, 1);
+ylabel('Variance');
+xlabel('Distance (m)');
+xlim([0, 20000])
+
+figure('Name', 'Variogram Limited to 20km')
+plot(h, vgram, '.');
+ylabel('Variance');
+xlabel('Distance (m)');
+hold on;
+plot(h, test_cv, '-r');
+plot(h, test_manual, '-b');
+hold off;
+legend('Estimated Variogram','CV Fit', 'Manual Fit');
+legend('Location','northeast');
+xlim([0, 20000])
+
 
 %%%% PLOT KRIGING SURFACES %%%%
 Mat = plot_res;
